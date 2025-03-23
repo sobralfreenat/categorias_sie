@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Alinhamento</title>
+    <style>
+        :root {
+            --menu-width: 12%; /* Largura inicial do menu */
+            --menu-height: auto; /* Altura do menu */
+            --menu-top: 0; /* Posição do menu a partir do topo */
+            --menu-left: 0; /* Posição do menu a partir da esquerda */
+            --menu-bg-color: rgba(51, 51, 51, 1); /* Cor de fundo do menu */
+            --button-bg-color: black; /* Cor de fundo dos botões */
+            --button-hover-color: gray; /* Cor de fundo dos botões ao passar o mouse */
+            --button-active-color: green; /* Cor de fundo dos botões ativos */
+            --button-text-color: white; /* Cor do texto dos botões */
+            --button-padding: 10px 20px; /* Espaçamento interno dos botões */
+            --button-margin: 5px; /* Margem dos botões */
+            --button-font-size: 16px; /* Tamanho da fonte dos botões */
+            --controls-font-size: 14px; /* Tamanho da fonte dos controles */
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+        }
+
+        .fixed-menu {
+            position: fixed;
+            top: var(--menu-top);
+            left: var(--menu-left);
+            width: var(--menu-width);
+            height: var(--menu-height);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--menu-bg-color);
+            z-index: 1000;
+            padding: 10px;
+            transition: width 0.3s ease, height 0.3s ease, background-color 0.3s ease;
+        }
+
+        .button {
+            padding: var(--button-padding);
+            font-size: var(--button-font-size);
+            margin: var(--button-margin);
+            background-color: var(--button-bg-color);
+            color: var(--button-text-color);
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+        }
+
+        .button:hover {
+            background-color: var(--button-hover-color);
+        }
+
+        .button.active {
+            background-color: var(--button-active-color);
+            border: full;
+            border-color: white;
+        }
+
+        .controls {
+            display: none;
+            flex-direction: column;
+            width: 200px;
+            background-color: #444;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-left: 10px;
+            font-size: var(--controls-font-size);
+        }
+
+        .controls label {
+            display: block;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .controls input[type="range"],
+        .controls input[type="number"] {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 5px;
+            box-sizing: border-box;
+            background-color: #555;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .toggle-controls {
+            background-color: black;
+            color: lightgray;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .toggle-controls:hover {
+            background-color: darkblue;
+            color: #afffff;
+        }
+
+        .icon-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+            padding: 5px;
+            color: #fff;
+        }
+
+        .icon-button img {
+            width: 20px;
+            height: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .fixed-menu {
+                flex-direction: column;
+                align-items: flex-start;
+                width: auto;
+                height: 100%;
+                top: var(--menu-top);
+                left: var(--menu-left);
+                padding: 10px 0;
+            }
+
+            .button {
+                width: 100%;
+                text-align: left;
+                margin: 5px 0;
+            }
+
+            .controls {
+                width: 100%;
+                margin-left: 0;
+            }
+        }
+    </style>
+    <script>
+        const janelas = {}; 
+        let activeButton = null;
+
+        function abrirOuFocarJanela(url, nomeJanela, larguraJanela, alturaJanela, esquerda, topo, button) {
+            // Verifica se a janela já está aberta
+            if (janelas[nomeJanela] && !janelas[nomeJanela].closed) {
+                janelas[nomeJanela].focus(); // Traz a janela para frente
+            } else {
+                // Se "esquerda" for negativo, calcula a posição para o canto direito
+                if (esquerda < 0) {
+                    esquerda = window.innerWidth + esquerda - larguraJanela;
+                }
+                // Abre a janela na posição definida pelos parâmetros "esquerda" e "topo"
+                let opcoesJanela = `width=${larguraJanela},height=${alturaJanela},left=${esquerda},top=${topo}`;
+                janelas[nomeJanela] = window.open(url, nomeJanela, opcoesJanela);
+            }
+
+            // Gerencia o estado ativo dos botões
+            if (activeButton) {
+                activeButton.classList.remove("active");
+            }
+            button.classList.add("active");
+            activeButton = button;
+        }
+
+        function updateMenuStyle(property, value) {
+            document.documentElement.style.setProperty(property, value);
+        }
+
+        function toggleControls() {
+            const controls = document.querySelector('.controls');
+            if (controls.style.display === 'none' || controls.style.display === '') {
+                controls.style.display = 'flex';
+            } else {
+                controls.style.display = 'none';
+            }
+        }
+
+        function saveSettings() {
+            const settings = {
+                menuWidth: document.getElementById('menu-width').value,
+                menuHeight: document.getElementById('menu-height').value,
+                menuTop: document.getElementById('menu-top').value,
+                menuLeft: document.getElementById('menu-left').value,
+                buttonFontSize: document.getElementById('button-font-size').value,
+                menuBgTransparency: document.getElementById('menu-bg-transparency').value,
+                controlsFontSize: document.getElementById('controls-font-size').value
+            };
+            localStorage.setItem('menuSettings', JSON.stringify(settings));
+            alert('Configurações salvas!');
+        }
+
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem('menuSettings'));
+            if (settings) {
+                document.getElementById('menu-width').value = settings.menuWidth;
+                document.getElementById('menu-width-value').value = settings.menuWidth;
+                updateMenuStyle('--menu-width', settings.menuWidth + '%');
+
+                document.getElementById('menu-height').value = settings.menuHeight;
+                document.getElementById('menu-height-value').value = settings.menuHeight;
+                updateMenuStyle('--menu-height', settings.menuHeight + 'px');
+
+                document.getElementById('menu-top').value = settings.menuTop;
+                document.getElementById('menu-top-value').value = settings.menuTop;
+                updateMenuStyle('--menu-top', settings.menuTop + 'px');
+
+                document.getElementById('menu-left').value = settings.menuLeft;
+                document.getElementById('menu-left-value').value = settings.menuLeft;
+                updateMenuStyle('--menu-left', settings.menuLeft + 'px');
+
+                document.getElementById('button-font-size').value = settings.buttonFontSize;
+                document.getElementById('button-font-size-value').value = settings.buttonFontSize;
+                updateMenuStyle('--button-font-size', settings.buttonFontSize + 'px');
+
+                document.getElementById('menu-bg-transparency').value = settings.menuBgTransparency;
+                document.getElementById('menu-bg-transparency-value').value = settings.menuBgTransparency;
+                updateMenuStyle('--menu-bg-color', `rgba(51, 51, 51, ${settings.menuBgTransparency / 100})`);
+
+                document.getElementById('controls-font-size').value = settings.controlsFontSize;
+                document.getElementById('controls-font-size-value').value = settings.controlsFontSize;
+                updateMenuStyle('--controls-font-size', settings.controlsFontSize + 'px');
+
+                alert('Configurações carregadas!');
+            } else {
+                alert('Nenhuma configuração salva encontrada.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const widthSlider = document.getElementById('menu-width');
+            const heightSlider = document.getElementById('menu-height');
+            const topSlider = document.getElementById('menu-top');
+            const leftSlider = document.getElementById('menu-left');
+            const fontSizeSlider = document.getElementById('button-font-size');
+            const transparencySlider = document.getElementById('menu-bg-transparency');
+            const controlsFontSizeSlider = document.getElementById('controls-font-size');
+
+            widthSlider.addEventListener('input', (event) => {
+                const value = event.target.value + '%';
+                updateMenuStyle('--menu-width', value);
+                document.getElementById('menu-width-value').value = event.target.value;
+            });
+
+            heightSlider.addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--menu-height', value);
+                document.getElementById('menu-height-value').value = event.target.value;
+            });
+
+            topSlider.addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--menu-top', value);
+                document.getElementById('menu-top-value').value = event.target.value;
+            });
+
+            leftSlider.addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--menu-left', value);
+                document.getElementById('menu-left-value').value = event.target.value;
+            });
+
+            fontSizeSlider.addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--button-font-size', value);
+                document.getElementById('button-font-size-value').value = event.target.value;
+            });
+
+            transparencySlider.addEventListener('input', (event) => {
+                const value = event.target.value / 100;
+                updateMenuStyle('--menu-bg-color', `rgba(51, 51, 51, ${value})`);
+                document.getElementById('menu-bg-transparency-value').value = event.target.value;
+            });
+
+            controlsFontSizeSlider.addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--controls-font-size', value);
+                document.getElementById('controls-font-size-value').value = event.target.value;
+            });
+
+            document.getElementById('menu-width-value').addEventListener('input', (event) => {
+                const value = event.target.value + '%';
+                updateMenuStyle('--menu-width', value);
+                widthSlider.value = parseInt(event.target.value);
+            });
+
+            document.getElementById('menu-height-value').addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--menu-height', value);
+                heightSlider.value = parseInt(event.target.value);
+            });
+
+            document.getElementById('menu-top-value').addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--menu-top', value);
+                topSlider.value = parseInt(event.target.value);
+            });
+
+            document.getElementById('menu-left-value').addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--menu-left', value);
+                leftSlider.value = parseInt(event.target.value);
+            });
+
+            document.getElementById('button-font-size-value').addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--button-font-size', value);
+                fontSizeSlider.value = parseInt(event.target.value);
+            });
+
+            document.getElementById('menu-bg-transparency-value').addEventListener('input', (event) => {
+                const value = event.target.value / 100;
+                updateMenuStyle('--menu-bg-color', `rgba(51, 51, 51, ${value})`);
+                transparencySlider.value = parseInt(event.target.value);
+            });
+
+            document.getElementById('controls-font-size-value').addEventListener('input', (event) => {
+                const value = event.target.value + 'px';
+                updateMenuStyle('--controls-font-size', value);
+                controlsFontSizeSlider.value = parseInt(event.target.value);
+            });
+
+            document.querySelector('.toggle-controls').addEventListener('click', toggleControls);
+            document.getElementById('save-settings').addEventListener('click', saveSettings);
+            document.getElementById('load-settings').addEventListener('click', loadSettings);
+        });
+    </script>
+</head>
+<body>
+
+<div class="fixed-menu">
+    <button class="toggle-controls">Ajustar Menu</button>
+
+    <div class="controls">
+        <label for="menu-width">Largura do Menu (%):</label>
+        <input type="range" id="menu-width" min="0" max="100" value="12">
+        <input type="number" id="menu-width-value" value="12">
+
+        <label for="menu-height">Altura do Menu (px):</label>
+        <input type="range" id="menu-height" min="0" max="1000" value="auto">
+        <input type="number" id="menu-height-value" value="auto">
+
+        <label for="menu-top">Posição do Menu a partir do Topo (px):</label>
+        <input type="range" id="menu-top" min="0" max="500" value="0">
+        <input type="number" id="menu-top-value" value="0">
+
+        <label for="menu-left">Posição do Menu a partir da Esquerda (px):</label>
+        <input type="range" id="menu-left" min="0" max="350" value="350">
+        <input type="number" id="menu-left-value" value="0">
+
+        <label for="button-font-size">Tamanho da Fonte dos Botões (px):</label>
+        <input type="range" id="button-font-size" min="8" max="10" value="9">
+        <input type="number" id="button-font-size-value" value="9">
+
+        <label for="menu-bg-transparency">Transparência do Fundo do Menu (%):</label>
+        <input type="range" id="menu-bg-transparency" min="0" max="100" value="100">
+        <input type="number" id="menu-bg-transparency-value" value="100">
+
+        <label for="controls-font-size">Tamanho da Fonte dos Controles (px):</label>
+        <input type="range" id="controls-font-size" min="8" max="10" value="9">
+        <input type="number" id="controls-font-size-value" value="9">
+
+        <div style="display: flex; justify-content: space-between;">
+            <button class="icon-button" id="save-settings" title="Salvar Configurações">
+                <img src="https://img.icons8.com/ios-filled/50/000000/save.png" alt="Salvar">
+            </button>
+            <button class="icon-button" id="load-settings" title="Carregar Configurações">
+                <img src="https://img.icons8.com/ios-filled/50/000000/load.png" alt="Carregar">
+            </button>
+        </div>
+    </div>
+
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://web.whatsapp.com/', 'WhatsAppBus', 400, 600, 2444, 1100, this)">WhatsAppBus</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://meet.google.com/landing?hs=193&pli=1', 'GoogleMeet', 400, 600, 2444, 1100, this)">Gmeet</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://sobralfreenat.github.io/mae-menu-editor/', 'M.A.E. pack', 400, 600, 2444, 1100, this)">M.A.E. CoDec</button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://app.appsmith.com/app/fnw-sie-agent/fnw-labv2-0-67b63bcfdfec372b51540618', 'AppFNWBackOffice', 400, 600, 2444, 1100, this)">AppFNWBackOffice</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://app.appsmith.com/app/lab-m-a-e-menu-de-acesso-essencial/assessoria-67aa8ffaf0922f5789bc70e5', 'AppSInternoMVPs', 400, 600, 2444, 1100, this)">AppInternoMVPs</button>
+
+
+  <button class="button" onclick="abrirOuFocarJanela('https://okcalc.com/pt/', 'AlinhamentoCalc', 400, 600, 2444, 1100, this)">Alinhamento Calc</button>
+
+
+
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://freenat-doc.systeme.io/blog-assessoria-digital/white-label-digital', 'Objetivo', 400, 600, 2444, 1100, this)">Objetivo: Quanto em Quanto Tempo</button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://freenat-doc.systeme.io/blog-assessoria-digital/nc-tm-ml-calc', 'nctmml', 400, 600, 2444, 1100, this)">Ajuste de Mira NC TM ML</button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://sobralfreenat.github.io/fnw_clevel_roi-maker/', 'ROI MAKER', 400, 600, 2444, 1100, this)">ROI Maker</button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://sobralfreenat.github.io/Identifica_perfil_arquetipo/','Perfil Arquetipo', 400, 600, 2444, 1100, this)">Perfil Arquétipo </button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://sobralfreenat.github.io/icp_id/','ICP', 400, 600, 2444, 1100, this)">Perfil de Cliente</button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://sobralfreenat.github.io/gerador_de_prompt__segmento_desafio','Desaio Cliente', 400, 600, 2444, 1100, this)">Desafio do Cliente</button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://sobralfreenat.github.io/Simul-Crescim-Clientes-base-tempo/','Hunter BaseCLientes', 400, 600, 2444, 1100, this)">Base Clientes  3|7|14|21</button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://sobralfreenat.github.io/busca_grupostelegram_as_json/','Caca_Palavras_grp', 400, 600, 2444, 1100, this)">GRP Caça Palavras</button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://b2bleads.com.br/resultado?page=1&cnae=8599604%7C7020400&situacao=Ativa&porte=1%2C3&dataAbertura=14%2F06%2F2023&cnaeSecundario=0&tipoDados=lista','b2bleads', 400, 600, 2444, 1100, this)">B2B - 1 em 1 Milhão</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://websim.ai/@shiningrainbow72249063/ia-skills-assessoria-estrat-gica/33','melhoramos ROI', 400, 600, 2444, 1100, this)">Assessor IA webs</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://sobralfreenat.github.io/FNWAssessoriIA/','ChatWebfixo', 400, 600, 2444, 1100, this)">Chat Assessor IA</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://www.sie.com.br/demob2b','Demob2b', 400, 600, 2444, 1100, this)">Demo b2b</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://www.sie.com.br/demob2c','Demob2c', 400, 600, 2444, 1100, this)">Demo b2c</button>
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://app.diagrams.net/','Diagrama', 400, 600, 2444, 1100, this)">Diagrama</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://dash.superagentes.ai/@humania','HumanIA SA', 400, 600, 2444, 1100, this)">HumanIA SA</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://t.me/s/EngGB_bot/','IanTelegram', 400, 600, 2444, 1100, this)">Ian - TG</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://t.me/s/MAE_Encoder2_2_bot/','MAE M2', 400, 600, 2444, 1100, this)">M2 - Back Office - TG</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://t.me/s/SieAPIstente_bot/','SIE Ds Demo', 400, 600, 2444, 1100, this)">M2 - FNW SIE DS Demo - TG</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://52fapypk.rcsrv.com/webhook/8e72a25a-2aa0-4add-9fc3-39845d0cc738/chat','FNW web Client Neight', 400, 600, 2444, 1100, this)">FNW web Client Neight - TG</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://t.me/s/+NfLhbsRrVjBhNTUx','FNW GRP Team M2', 400, 600, 2444, 1100, this)">FNW GRP Team M2 - TG</button>
+
+
+
+<button class="button" onclick="abrirOuFocarJanela('https://www.google.com/search?q=%20%20/','Google', 400, 600, 2444, 1100, this)">Google</button>
+
+<button class="button" onclick="abrirOuFocarJanela('https://chat.deepseek.com/','Google', 400, 600, 2444, 1100, this)">Deepseek</button>
+
+
+
+</div>
+
+</body>
+</html>
